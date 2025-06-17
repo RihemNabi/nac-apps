@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  name          String
+  password      String
+  role          Role           @default(CLIENT)
+  subscriptions Subscription[]
+  reports       Report[]
+
+  clients User[] @relation("AdminToClient")
+  admin   User?  @relation("AdminToClient", fields: [adminId], references: [id])
+  adminId Int?
+}
+
+model Service {
+  id            Int            @id @default(autoincrement())
+  code          String         @unique
+  description   String?
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        Int       @id @default(autoincrement())
+  startDate DateTime?
+  endDate   DateTime?
+  price     Float
+  client    User      @relation(fields: [clientId], references: [id])
+  clientId  Int
+  service   Service   @relation(fields: [serviceId], references: [id])
+  serviceId Int
+  payments  Payment[]
+  reports   Report[]
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  amount         Float
+  paidAt         DateTime      @default(now())
+  note           String
+  status         PaymentStatus @default(PENDING)
+  type           PaymentType
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id])
+  subscriptionId Int
+}
+
+model Report {
+  id             Int          @id @default(autoincrement())
+  title          String
+  description    String?
+  filepath       String       @default("")
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionId Int
+  User           User?        @relation(fields: [userId], references: [id])
+  userId         Int?
+  isDownloaded   Boolean      @default(false)
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  CLIENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+}
+
+enum PaymentType {
+  CREDIT_CARD
+  PAYPAL
+  CASH
+  OTHER
+}
